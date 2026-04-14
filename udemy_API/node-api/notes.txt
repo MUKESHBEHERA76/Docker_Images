@@ -1,0 +1,5 @@
+docker run -d \
+-p 7070:3000 \
+--name node-api \
+--restart always \
+node-sample-api
