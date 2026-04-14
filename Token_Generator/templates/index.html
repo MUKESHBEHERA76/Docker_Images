@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JWT Studio Pro</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: system-ui;
+    background: #0a0f1c;
+    color: #e5e7eb;
+}
+
+/* TOP BAR */
+.topbar {
+    height: 45px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    background: #0f172a;
+    border-bottom: 1px solid #1f2937;
+    font-size: 13px;
+    color: #60a5fa;
+}
+
+/* LAYOUT */
+.container {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: calc(100vh - 45px);
+}
+
+/* SIDEBAR */
+.sidebar {
+    background: #0f172a;
+    border-right: 1px solid #1f2937;
+    padding: 15px;
+}
+
+.menu {
+    padding: 10px;
+    margin-bottom: 8px;
+    background: #111827;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.menu:hover {
+    background: #1e293b;
+}
+
+/* MAIN */
+.main {
+    padding: 15px;
+    overflow-y: auto;
+}
+
+/* CARDS */
+.card {
+    background: #0f172a;
+    border: 1px solid #1f2937;
+    border-radius: 14px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+/* TITLE */
+.title {
+    font-size: 13px;
+    color: #93c5fd;
+    margin-bottom: 10px;
+}
+
+/* INPUTS */
+textarea, input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background: #0b1020;
+    color: white;
+    border: 1px solid #334155;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+/* BUTTONS */
+button {
+    margin-top: 10px;
+    margin-right: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: none;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+/* SCROLL */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+    JWT Studio Pro • Desktop Token Generator
+</div>
+
+<div class="container">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="menu">Key Generator</div>
+        <div class="menu">JWT Builder</div>
+        <div class="menu">JWKS Viewer</div>
+        <div class="menu">Token Output</div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- KEY GENERATOR -->
+        <div class="card">
+            <div class="title">Key Generator</div>
+
+            <input id="kid" placeholder="Key ID (auto generated)" />
+
+            <button onclick="generateKeys()">Generate Keys</button>
+            <button onclick="clearAll()">Clear</button>
+        </div>
+
+        <!-- PRIVATE KEY -->
+        <div class="card">
+            <div class="title">Private Key</div>
+            <textarea id="private" rows="8"></textarea>
+
+            <button onclick="copy('private')">Copy</button>
+            <button onclick="download('private','private.pem')">Download</button>
+        </div>
+
+        <!-- PUBLIC KEY -->
+        <div class="card">
+            <div class="title">Public Key</div>
+            <textarea id="public" rows="8"></textarea>
+
+            <button onclick="copy('public')">Copy</button>
+            <button onclick="download('public','public.pem')">Download</button>
+        </div>
+
+        <!-- JWKS -->
+        <div class="card">
+            <div class="title">JWKS</div>
+            <textarea id="jwks" rows="6"></textarea>
+
+            <button onclick="copy('jwks')">Copy</button>
+            <button onclick="download('jwks','jwks.json')">Download</button>
+        </div>
+
+        <!-- PAYLOAD -->
+        <div class="card">
+            <div class="title">Payload</div>
+            <textarea id="payload" rows="5">
+{
+  "sub": "demo",
+  "role": "admin"
+}
+            </textarea>
+
+            <button onclick="createJWT()">Generate JWT</button>
+        </div>
+
+        <!-- TOKEN -->
+        <div class="card">
+            <div class="title">JWT Token</div>
+            <textarea id="token" rows="5"></textarea>
+
+            <button onclick="copy('token')">Copy Token</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function generateKeys(){
+ fetch('/generate')
+ .then(r=>r.json())
+ .then(d=>{
+    private.value = d.private;
+    public.value = d.public;
+    jwks.value = JSON.stringify(d.jwks, null, 2);
+    kid.value = d.kid;
+ });
+}
+
+function createJWT(){
+ fetch('/jwt', {
+ method:'POST',
+ headers:{'Content-Type':'application/json'},
+ body: JSON.stringify({
+    private: private.value,
+    payload: payload.value,
+    kid: kid.value
+ })
+ })
+ .then(r=>r.json())
+ .then(d=>{
+    token.value = d.token;
+ });
+}
+
+function clearAll(){
+ ['private','public','jwks','payload','token','kid']
+ .forEach(id => document.getElementById(id).value = '');
+}
+
+function copy(id){
+ let el = document.getElementById(id);
+ el.select();
+ document.execCommand('copy');
+}
+
+function download(id, filename){
+ let content = document.getElementById(id).value;
+
+ let blob = new Blob([content], {type: "text/plain"});
+ let a = document.createElement("a");
+
+ a.href = URL.createObjectURL(blob);
+ a.download = filename;
+ a.click();
+}
+</script>
+
+</body>
+</html>
