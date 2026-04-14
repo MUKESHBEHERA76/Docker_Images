@@ -1,0 +1,73 @@
+
+version: "3.9"
+
+volumes:
+  kong_db_data:
+
+networks:
+  kong-ee-net:
+    driver: bridge
+
+x-kong-config: &kong-env
+  KONG_DATABASE: postgres
+  KONG_PG_HOST: kong-ee-database
+  KONG_PG_DATABASE: kong
+  KONG_PG_USER: kong
+  KONG_PG_PASSWORD: kong
+
+services:
+
+  kong-ee-database:
+    image: postgres:15
+    container_name: kong-ee-database
+    restart: unless-stopped
+    networks:
+      - kong-ee-net
+    volumes:
+      - kong_db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+      POSTGRES_PASSWORD: kong
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+
+  kong-bootstrap:
+    image: kong/kong-gateway:3.6
+    container_name: kong-bootstrap
+    restart: on-failure
+    networks:
+      - kong-ee-net
+    depends_on:
+      kong-ee-database:
+        condition: service_healthy
+    environment:
+      <<: *kong-env
+      KONG_PASSWORD: handyshake
+    command: kong migrations bootstrap
+
+  kong:
+    image: kong/kong-gateway:3.6
+    container_name: kong
+    restart: unless-stopped
+    networks:
+      - kong-ee-net
+    depends_on:
+      kong-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      <<: *kong-env
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+      KONG_PASSWORD: handyshake
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+      - "8001:8001"
+      - "8002:8002"
